@@ -13,42 +13,21 @@ function pow(a, n::Integer)
 return t
 end
 
-#Задача 2. Написать функцию fibonacci(n::Intrger), возвращающую n-ое число последовательности Фибоначчи, имеющую оценку алгоритмической сложности O(log(n)), и не используя известную формулу Бине.
-function fibonacci(n::Integer)
-    a,b,c=1,1,1
-    rc,d,rd = 0,0,1
-    while (n>0)
-        if (n%2!=0)
-            tc = rc
-            rc = rc*a + rd*c
-            rd = tc*b + rd*d
-        end
-        ta,tb,tc=a,b,c
-        a = a*a  + b*c
-        b = ta*b + b*d
-        c = c*ta + d*c
-        d = tc*tb+ d*d
-        n >>= 1
-    end
-    return rc
-end
-
 #Задача 3. Написать функцию log(a::Real,x::Real,ε::Real), реализующую приближенное вычисление логарифма по основанию a>1 числа x>0 с максимально допустимой погрешностью ε>0 (без использования разложения логарифмической функции в степенной ряд).
 function log(a::Real,x::Real,ε::Real)
     z, t, y = x, 1, 0
-    while (z>a || z<1/a || t>ε)
-        if (z>a)
-            z/=a
-            y+=t
-        elseif (z<1/a)
-            z*=a
-            y-=t
-        else
-            t/=2
-            z*=z
-        end
+#ИНВАРИАНТ: a^y * z^t == x (=const)
+while z > a || z < 1/a || t > ε   
+    if z > a
+        z /= a
+        y += t # z^t = (z/a)^t * a^t
+    elseif z < 1/a
+        z *= a
+        y -= t # z^t = (z*a)^t * a^-t
+    else # t > ε
+        t /= 2
+        z *= z # z^t = (z*z)^(t/2)
     end
-    return y
 end
 
 #Задача 4. Написать функцию isprime(n)::Bool, возвращающую значение true, если аргумент есть простое число, и - значение false, в противном случае. При этом следует иметь ввиду, что число 1 простым не считается.
@@ -75,53 +54,81 @@ function eratosphen(n::Integer)
     return findall(ser)
 end
 
-#Задача 8. Самостоятельно написать подобную функцию, реализующую расширенный алгоритм Евклида.
-function gcdx(m::Int,n::Int)
-    a, b = m, n
-    u_a, v_a = 1, 0
-    u_b, v_b = 0, 1
-    while b != 0
-        k = a÷b
-        a, b = b, a % b 
-        u, v = u_a, v_a
-        u_a, v_a = u_b, u_a
-        u_b, v_b = u-k*u_b, v-k*v_b
+#Задача 6. Написать функцию factor(n), получающую некоторое натуральное число n, и возвращающую кортеж, состоящий из вектора его простых делителей (в порядке возрастания) и вектора кратностей этих делителей, т.е. выполняющую факторизацию заданного числа
+function factor(n)::Tuple
+    if (isprime(n)) #если число простое
+        return n,1
     end
-    if u_a<0
-        u_a+=n
+    
+    vector_delit = []
+    vector_kratn = []
+    
+    del = 2
+    n2=n
+    k = 0
+    
+    while (del*del<=n && n2>1)
+        if (isprime(del))
+            if (n2%del == 0)
+                push!(vector_delit,del)
+                while (n2%del == 0)
+                    n2 /= del
+                    k += 1
+                end
+                push!(vector_kratn,k)
+                k = 0
+            end 
+        end
+        del += 1
     end
-    return u_a
+    if (n2 != 1)
+        push!(vector_delit,Int(n2))
+        push!(vector_kratn,1)
+    end
+    return vector_delit,vector_kratn
 end
 
-#Задача 9 Написать функцию inv(m::Integer,n::Integer) возвращающий обратный элемент к значению m в кольце вычетов по модулю n (см. лекцию 3). При этом, если значение n не обратимо, то должно возвращаться значение nothing.
-function inv(m::Integer,n::Integer)
-    if (gcd(m,n)>1)
-        return nothing
+#Задача 7. Написать фунуцию, получающую натуральный аргумент n, и возвращающую для него значение функции Эйлера.
+function euler_function(n)
+    if (isprime(n)) # функция Эйлера от просто числа = число - 1, от числа в степени = x^n - x^(n-1), от составного числа = разбиваем на простые и смотрим первые два случая
+        return n-1
     else
-        return gcdex(m,n)
+        delit,kratn = factor(n) #получаем вектор делителей и их кратности 
+        res = 1
+        for i in 1:length(delit)
+            if (kratn[i] == 1)
+                delit[i] -= 1
+            else
+                delit[i] = delit[i]^kratn[i] - delit[i]^(kratn[i]-1)
+            end
+            res *= delit[i]
+        end
+        return res
     end
 end
 
 #Задача 10 Написать функцию zerodivisors(m), возвращающую все делители нуля кольца вычетов по заданному модулю $n$.
-function zerodivisors(n::Integer)
+function zerodivisors(n::Integer)::Vector
     v = [1]
     for i in 2:n
-        if (gcd(n,i)==1)
-                push!(v,i)
+        if (gcd(n,i)==1) #все элементы кольца либо обратимы, либо являются делителями нуля
+            push!(v,i)
         end
     end
     return v
 end
 
-#Задача 12 Написать функцию ord(a,p), возвращающую порядок заданного элемента a мультипликативной группы кольца вычетов по заданному простому модулю p.
-function order(a,p)
-    phi = p-1
-    res = 0
-    for i in 1:(p-1)
-        if (phi%i==0 && (a^i)%p==1)
-            res = i
-            break
-        end
+#Задача 11. Написать функцию nilpotents(n), для заданного n возвращающую диапазон
+function allnilpotents(n::Integer)::StepRange{Int64,Int64}
+    ans = []
+    vect_del,d = factor(n) #d не используется
+    m_group = 1
+    for i in 1:length(vect_del)
+        m_group *=vect_del[i] #мультипликативная группа состоит из чисел взаимнопростых с основанием кольца
     end
-    return res
+    count = Int(n/m_group)
+    for i in 1:count-1
+        push!(ans,m_group*i)
+    end
+    return ans
 end
