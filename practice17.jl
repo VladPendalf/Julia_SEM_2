@@ -1,16 +1,15 @@
-ConnectList{T}=Vector{Vector{T}}
-#Задача 1 Написать и протестировать функцию, получающую на вход список смежностей некоторого графа, и возвращающую вектор индексов его вершин, полученных в порядке поиска в глубину.
-function dfs_(startver::T, graph::ConnectList{T}) where T
+#Задача 1. Написать и протестировать функцию, получающую на вход список смежностей некоторого графа, и возвращающую вектор индексов его вершин, полученных в порядке поиска в глубину.Указание. За основу взять соответствующий код, разобранный в лекции 8.
+function dfsearch(startver::T, graph::ConnectList{T}) where T
     mark = zeros(Bool, length(graph))
-    stack  = [startver]
-    mark[startver] = 1
-    visited = Int64[]
+    stack  = [startver] #стек обрабатываемых вершин
+    mark[startver] = 1 #отмечаем, что были в вершине
+    visited = Int64[] #посещенные вершниы
     while !isempty(stack)
-        v = pop!(stack)
-        push!(visited,v)
+        v = pop!(stack) #берем вершину
+        push!(visited,v) #отмечаем, что были
         for u in graph[v]
             if mark[u] == 0
-                push!(stack,u)
+                push!(stack,u) #закидываем смежные вершины
                 mark[u] = 1
             end
         end
@@ -18,8 +17,8 @@ function dfs_(startver::T, graph::ConnectList{T}) where T
     return visited
 end
 
-#Задача 2 Написать и протестировать функцию, получающую на вход список смежностей некоторого графа, и возвращающую вектор индексов его вершин, полученных в порядке поиска в ширину
-function bfs_(startver::T, graph::ConnectList{T}) where T
+#Задача 2. Написать и протестировать функцию, получающую на вход список смежностей некоторого графа, и возвращающую вектор индексов его вершин, полученных в порядке поиска в ширину.
+function bfsearch(startver::T, graph::ConnectList{T}) where T
     mark = zeros(Bool, length(graph))
     queue  = [startver]
     mark[startver] = 1
@@ -37,8 +36,8 @@ function bfs_(startver::T, graph::ConnectList{T}) where T
     return visited
 end
 
-#Задача 3 Написать и протестировать функцию, получающую на вход список смежностей некоторого графа, и возвращающую вектор валентностей его вершин по выходу.
-function valentce(graph::ConnectList{T}) where T
+#Задача 3. Написать и протестировать функцию, получающую на вход список смежностей некоторого графа, и возвращающую вектор валентностей его вершин по выходу.
+function valence(graph::ConnectList{T}) where T
     val = zeros(size(graph,1))
     for i in 1:size(graph,1)
         val[i]=length(graph[i])
@@ -46,25 +45,61 @@ function valentce(graph::ConnectList{T}) where T
     return val
 end
 
-#Задача 10 Написать и протестировать функцию, получающую на вход список смежностей некоторого графа и индексы каких-либо двух его вершин, и возвращающую кратчайший путь из первой вершины во вторую в виде вектора из индексов последовательности вершин, через которые проходит этот путь.
-function dist(start_ver::T, finish_ver::T, graph::ConnectList{T}) where T
-    len = length(graph)
-    dist = Array{Array{Int,1}}(undef,n)
-    for i in 1:len
-        dist[i] = []
-    end
-    queue  = [start_ver]
-    dist[start_ver] = [start_ver]
+#Задача 4. Написать и протестировать функцию, получающую на вход список смежностей некоторого графа, и возвращающую вектор валентностей его вершин по входу.
+function bfs_valence(graph::ConnectList{T}) where T
+    mark = zeros(Int64, length(graph))
+    queue  = [1]
+    mark[1] = 1
     while !isempty(queue)
-        v = popfirst!(queue)
-        if v == finish_ver 
-            return dist[v] 
-        end
+        v = popfirst!(queue) #обрабатываем первый элемент очереди
+        #println(v)
         for u in graph[v]
-            if dist[u] == []
-                push!(queue, u)
-                dist[u] = push!(copy(dist[v]),u)
+            if mark[u] == 0
+                push!(queue, u) #закидываем в очередь след элемент, если его не посещали
+            end
+            mark[u] = mark[u] + 1
+        end
+    end
+    mark[1] -= 1
+    return mark
+end
+
+#Задача 5. Написать и протестировать функцию, получающую на вход список смежностей некоторого графа, и возвращающую значение true, если он является сильно связным, и значение false - в противном случае.
+function strongly_connected(graph::ConnectList)
+    for s in 1:length(graph)
+        if all_achievable(s, graph) == false
+            return false
+        end
+    end
+    return true
+end
+
+function attempt_achievable!(start_ver::T, graph::ConnectList{T}, mark::AbstractVector{<:Integer}) where T   
+    stack  = [start_ver]
+    mark[start_ver] = 1 
+    while !isempty(stack)
+        v = pop!(stack)
+        for u in graph[v]
+            if mark[u] == 0
+                push!(stack,u)
+                mark[u] = 1
             end
         end
     end
+end
+
+function all_achievable(started_ver::Integer, graph::ConnectList)
+    mark = zeros(Bool,length(graph))
+    attempt_achievable!(started_ver, graph, mark)
+    return count(m->m==0, mark) == 0 #all(mark .== 1)
+end
+
+#Задача 6. Написать и протестировать функцию, получающую на вход список смежностей некоторого графа, и возвращающую значение true, если он является слабо связным, и значение false - в противном случае.
+function strongly_connected(graph::ConnectList)
+    for s in 1:length(graph)
+        if all_achievable(s, graph) == false
+            return true # слабо связный
+        end
+    end
+    return false #сильно связный
 end
